@@ -5,15 +5,18 @@ namespace App\Livewire\Front\Industri;
 use App\Models\Industri;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class Index extends Component
 {
-    public $nama, $bidangUsaha, $alamat, $kontak, $email, $website;
+    use WithPagination, WithFileUploads;
+
+    public $nama, $image, $alamat, $kontak, $email, $website;
     public $isOpen = 0;
     public $editingId = null;
-
-    use WithPagination;
+    public $oldImage = null; // Untuk menyimpan nama file gambar lama saat edit
 
     public $rowPerPage = 10;
     public $search;
@@ -25,7 +28,6 @@ class Index extends Component
                         Industri::latest()
                             ->paginate($this->rowPerPage) :
                         Industri::where('nama', 'like', '%' . $this->search . '%')
-                            ->orWhere('bidang_usaha', 'like', '%' . $this->search . '%')
                             ->orWhere('alamat', 'like', '%' . $this->search . '%')
                             ->orWhere('email', 'like', '%' . $this->search . '%')
                             ->latest()
@@ -45,7 +47,7 @@ class Index extends Component
         $industri = Industri::find($id);
         $this->editingId = $id;
         $this->nama = $industri->nama;
-        $this->bidangUsaha = $industri->bidang_usaha;
+        $this->oldImage = $industri->image;
         $this->alamat = $industri->alamat;
         $this->kontak = $industri->kontak;
         $this->email = $industri->email;
@@ -67,83 +69,72 @@ class Index extends Component
     private function resetInputFields()
     {
         $this->nama = '';
-        $this->bidangUsaha = '';
+        $this->image = null;
         $this->alamat = '';
         $this->kontak = '';
         $this->email = '';
         $this->website = '';
         $this->editingId = null;
+        $this->oldImage = null;
     }
 
     public function store()
     {
-        $this->validate([
+        $validationRules = [
             'nama' => 'required|string|max:255',
-            'bidangUsaha' => 'required|string|max:255',
             'alamat' => 'required|string',
             'kontak' => 'required|string|max:255',
             'email' => 'required|email|max:255' . ($this->editingId ? '|unique:industris,email,' . $this->editingId : '|unique:industris,email'),
             'website' => 'required|string|max:255',
-        ]);
-        
+        ];
+
+        $validationRules['image'] = $this->editingId ? 
+            'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 
+            'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+
+        $this->validate($validationRules);
+
         DB::beginTransaction();
-        
+
         try {
+            $data = [
+                'nama' => $this->nama,
+                'alamat' => $this->alamat,
+                'kontak' => $this->kontak,
+                'email' => $this->email,
+                'website' => $this->website,
+            ];
+
+            // Handle file upload
+            if ($this->image) {
+                // Hapus file lama jika ada
+                if ($this->oldImage && Storage::disk('public')->exists('logo/' . $this->oldImage)) {
+                    Storage::disk('public')->delete('logo/' . $this->oldImage);
+                }
+
+                // Simpan dengan nama asli
+                $originalName = $this->image->getClientOriginalName();
+                $this->image->storeAs('logo', $originalName, 'public');
+                $data['image'] = $originalName;
+            } elseif ($this->editingId && $this->oldImage) {
+                // Pertahankan gambar lama jika tidak ada upload baru
+                $data['image'] = $this->oldImage;
+            }
+
             if ($this->editingId) {
-                // Update existing record
-                $industri = Industri::find($this->editingId);
-                $industri->update([
-                    'nama' => $this->nama,
-                    'bidang_usaha' => $this->bidangUsaha,
-                    'alamat' => $this->alamat,
-                    'kontak' => $this->kontak,
-                    'email' => $this->email,
-                    'website' => $this->website,
-                ]);
-                
+                Industri::find($this->editingId)->update($data);
                 $message = 'Data industri berhasil diperbarui!';
             } else {
-                // Create new record
-                Industri::create([
-                    'nama' => $this->nama,
-                    'bidang_usaha' => $this->bidangUsaha,
-                    'alamat' => $this->alamat,
-                    'kontak' => $this->kontak,
-                    'email' => $this->email,
-                    'website' => $this->website,
-                ]);
-                
+                Industri::create($data);
                 $message = 'Data industri berhasil disimpan!';
             }
 
             DB::commit();
-            
             $this->closeModal();
-            $this->resetInputFields();
             session()->flash('success', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->closeModal();
-            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
-    public function delete($id)
-    {
-        try {
-            $industri = Industri::find($id);
-            if($industri) {
-                // Check if industri is being used in PKL
-                if($industri->pkls()->count() > 0) {
-                    session()->flash('error', 'Industri tidak dapat dihapus karena masih digunakan dalam data PKL!');
-                    return;
-                }
-                
-                $industri->delete();
-                session()->flash('success', 'Data industri berhasil dihapus!');
-            }
-        } catch (\Exception $e) {
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }

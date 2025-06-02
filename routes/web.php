@@ -8,16 +8,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Livewire\Front\Pkl\Index as PklIndex;
 use App\Livewire\Front\Industri\Index as industriindex;
+use App\Livewire\Front\Siswa\Index as siswaindex;
+use App\Livewire\Front\Guru\Index as guruindex;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-// Route::view('dashboard', 'dashboardindex:class')
-//     ->middleware(['auth', 'verified', 'check_user_email' , 'role:Siswa'])
-//     ->name('dashboard');
-
-Route::middleware(['auth', 'verified', 'check_user_email', 'role:Siswa'])->group(function () {
+Route::middleware(['auth', 'verified', 'check_user_email', 'role:Siswa|Guru'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 });
@@ -39,4 +37,12 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/industri', industriindex::class)->name('industri');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/siswa', siswaindex::class)->name('siswa');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/guru', guruindex::class)->name('guru');
 });

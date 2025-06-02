@@ -17,7 +17,7 @@ class SiswaResource extends Resource
 {
     protected static ?string $model = Siswa::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
 
     public static function form(Form $form): Form
     {
@@ -29,8 +29,12 @@ class SiswaResource extends Resource
                 Forms\Components\TextInput::make('nis')
                     ->required()
                     ->maxLength(5),
-                Forms\Components\TextInput::make('gender')
-                    ->required(),
+                Forms\Components\Select::make('gender')
+                    ->required()
+                    ->options([
+                        'L' => 'Laki-laki',
+                        'P' => 'Perempuan',
+                    ]),
                 Forms\Components\Textarea::make('alamat')
                     ->required()
                     ->columnSpanFull(),
@@ -54,7 +58,12 @@ class SiswaResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('nis')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('gender'),
+                Tables\Columns\TextColumn::make('gender')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'L' => 'Laki-laki',
+                        'P' => 'Perempuan',
+                        default => $state,
+                    }),
                 Tables\Columns\TextColumn::make('kontak')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
@@ -75,12 +84,15 @@ class SiswaResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => !$record->status_lapor_pkl),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->checkIfRecordIsSelectableUsing(fn ($record) => false);
     }
 
     public static function getRelations(): array

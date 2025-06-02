@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Magangku - Portal Data Siswa PKL</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="icon" type="image/png" href="{{ asset('img/logomagangku.png') }}">
 </head>
 <body class="bg-gray-50">
     <!-- Hero Section with Background Image -->

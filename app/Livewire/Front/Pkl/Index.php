@@ -141,17 +141,4 @@ class Index extends Component
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
-
-    public function delete($id)
-    {
-        try {
-            $pkl = Pkl::find($id);
-            if($pkl) {
-                $pkl->delete();
-                session()->flash('success', 'Data PKL berhasil dihapus!');
-            }
-        } catch (\Exception $e) {
-            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
 }

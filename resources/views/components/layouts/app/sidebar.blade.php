@@ -2,6 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
+        <link rel="icon" type="image/png" href="{{ asset('img/logomagangku.png') }}">
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         <flux:sidebar sticky stashable class="border-zinc-200 bg-zinc-50 rounded-xl m-1 dark:bg-zinc-900">
@@ -21,8 +22,10 @@
             <flux:navlist variant="outline">
                 <flux:navlist.group :heading="__('Platform')" class="grid">
                     <flux:navlist.item class="mb-2" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-                    <flux:navlist.item class="mb-2" icon="home" :href="route('pkl')" :current="request()->routeIs('pkl')" wire:navigate>{{ __('PKL') }}</flux:navlist.item>
-                    <flux:navlist.item icon="home" :href="route('industri')" :current="request()->routeIs('industri')" wire:navigate>{{ __('Industri') }}</flux:navlist.item>
+                    <flux:navlist.item class="mb-2" icon="clipboard-document-check" :href="route('pkl')" :current="request()->routeIs('pkl')" wire:navigate>{{ __('PKL') }}</flux:navlist.item>
+                    <flux:navlist.item class="mb-2" icon="building-office-2" :href="route('industri')" :current="request()->routeIs('industri')" wire:navigate>{{ __('Industri') }}</flux:navlist.item>
+                    <flux:navlist.item class="mb-2" icon="users" :href="route('siswa')" :current="request()->routeIs('siswa')" wire:navigate>{{ __('Siswa') }}</flux:navlist.item>
+                    <flux:navlist.item icon="users" :href="route('guru')" :current="request()->routeIs('guru')" wire:navigate>{{ __('Guru') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 

@@ -17,16 +17,20 @@ class IndustriResource extends Resource
 {
     protected static ?string $model = Industri::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Forms\Components\FileUpload::make('image')
+                    ->label('Logo Industri')
+                    ->image()
+                    ->disk('public') // menggunakan disk public (public/)
+                    ->directory('logo') // Folder dalam public/storage
+                    ->preserveFilenames()
+                    ->required(),
                 Forms\Components\TextInput::make('nama')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('bidang_usaha')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Textarea::make('alamat')
@@ -49,9 +53,9 @@ class IndustriResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('Logo'),
                 Tables\Columns\TextColumn::make('nama')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('bidang_usaha')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('kontak')
                     ->searchable(),

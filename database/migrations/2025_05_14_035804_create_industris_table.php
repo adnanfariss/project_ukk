@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('industris', function (Blueprint $table) {
             $table->id();
             $table->string('nama');
-            $table->string('bidang_usaha');
+            $table->string('image'); //sesudah
+            // $table->string('bidang_usaha');sebelum
             $table->text('alamat');
             $table->string('kontak');
             $table->string('email');

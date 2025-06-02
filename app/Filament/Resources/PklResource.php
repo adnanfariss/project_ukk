@@ -17,25 +17,59 @@ class PklResource extends Resource
 {
     protected static ?string $model = Pkl::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('siswa_id')
+                Forms\Components\Select::make('siswa_id')
+                    ->relationship('siswa', 'nama') // Menampilkan nama siswa
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('industri_id')
+                    ->searchable()
+                    ->preload(),
+                    
+                Forms\Components\Select::make('industri_id')
+                    ->relationship('industri', 'nama') // Menampilkan nama industri
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('guru_id')
+                    ->searchable()
+                    ->preload(),
+                    
+                Forms\Components\Select::make('guru_id')
+                    ->relationship('guru', 'nama') // Menampilkan nama guru
                     ->required()
-                    ->numeric(),
+                    ->searchable()
+                    ->preload(),
+                    
+                Forms\Components\TextInput::make('bidang_usaha')
+                    ->required()
+                    ->maxLength(255),
+                    
                 Forms\Components\DatePicker::make('mulai')
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                        if ($state && $get('selesai')) {
+                            $mulai = \Carbon\Carbon::parse($state);
+                            $selesai = \Carbon\Carbon::parse($get('selesai'));
+                            $set('lama_hari', $mulai->diffInDays($selesai));
+                        }
+                    }),
+                    
                 Forms\Components\DatePicker::make('selesai')
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                        if ($state && $get('mulai')) {
+                            $mulai = \Carbon\Carbon::parse($get('mulai'));
+                            $selesai = \Carbon\Carbon::parse($state);
+                            $set('lama_hari', $mulai->diffInDays($selesai));
+                        }
+                    }),
+                    
+                Forms\Components\TextInput::make('lama_hari')
+                    ->numeric()
+                    ->readOnly(),
             ]);
     }
 
@@ -43,25 +77,39 @@ class PklResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('siswa_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('siswa.nama') // Menampilkan nama siswa
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('industri_id')
-                    ->numeric()
+                    
+                Tables\Columns\TextColumn::make('industri.nama') // Menampilkan nama industri
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('guru_id')
-                    ->numeric()
+                    
+                Tables\Columns\TextColumn::make('guru.nama') // Menampilkan nama guru
+                    ->searchable()
                     ->sortable(),
+                    
+                Tables\Columns\TextColumn::make('bidang_usaha')
+                    ->searchable()
+                    ->sortable(),
+                    
                 Tables\Columns\TextColumn::make('mulai')
                     ->date()
                     ->sortable(),
+                    
                 Tables\Columns\TextColumn::make('selesai')
                     ->date()
                     ->sortable(),
+                    
+                Tables\Columns\TextColumn::make('lama_hari')
+                    ->label('Durasi (Hari)')
+                    ->sortable(),
+                    
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                    
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
