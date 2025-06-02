@@ -62,6 +62,14 @@ class GuruSeeder extends Seeder
                 'kontak' => '085228771506',
                 'email' => 'ratnayu2014@gmail.com'
             ],
+            [
+                "nama" => "Bu Bakti Maharani",
+                "nip" => "197306202006049009",
+                "gender" => "P",
+                "alamat" => "Bantul",
+                "kontak" => "001122334455",
+                "email" => "coba@gmail.com"
+            ]
         ]);
     }
 }

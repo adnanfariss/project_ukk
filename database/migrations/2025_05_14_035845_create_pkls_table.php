@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('siswa_id')->constrained('siswas')->onDelete('restrict');
             $table->foreignId('industri_id')->constrained('industris')->onDelete('restrict');
             $table->foreignId('guru_id')->constrained('gurus')->onDelete('restrict');
-            // $table->string('bidang_usaha');
+            $table->string('bidang_usaha');
             $table->date('mulai');
             $table->date('selesai');
-            // $table->integer('lama_hari')->nullable(); 
+            $table->integer('lama_hari')->nullable(); 
             $table->timestamps();
         });
     }

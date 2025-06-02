@@ -2,90 +2,156 @@
 
 namespace App\Livewire\Front\Pkl;
 
-use Livewire\Component;
-use App\Models\Siswa;
-use App\Models\Industri;
-use App\Models\Guru;
 use App\Models\Pkl;
+use App\Models\Guru;
+use App\Models\Siswa;
+use Livewire\Component;
+use App\Models\Industri;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
+use Livewire\Volt\Compilers\Mount;
 use Illuminate\Support\Facades\Auth;
 
 class Index extends Component
 {
-public $siswa;
-    public $industri_id;
-    public $bidang_usaha;
-    public $guru_id;
-    public $mulai_pkl;
-    public $akhir_pkl;
+    public $siswaId, $industriId, $guruId, $bidangUsaha, $mulai, $selesai;
+    public $isOpen = 0;
 
-    public $industris;
-    public $gurus;
+    use WithPagination;
 
-    public function mount()
-    {
-        // Ambil data siswa berdasarkan email user yang login
-        $this->siswa = Siswa::where('email', Auth::user()->email)->first();
+    public $rowPerPage = 10;
+    public $search;
+    public $userMail;
 
-        // Cek apakah sudah ada laporan PKL
-        if ($this->siswa && $this->siswa->pkls->count() > 0) {
-            session()->flash('info', 'Anda sudah pernah mengisi data PKL.');
-        }
-
-        // Load dropdown
-        $this->industris = Industri::all();
-        $this->gurus = Guru::all();
-    }
-
-    protected $rules = [
-        'industri_id' => 'required|exists:industris,id',
-        'bidang_usaha' => 'required|string|max:255',
-        'guru_id' => 'required|exists:gurus,id',
-        'mulai_pkl' => 'required|date',
-        'akhir_pkl' => 'required|date|after_or_equal:mulai_pkl',
-    ];
-
-    public function updated($propertyName)
-    {
-        $this->validateOnly($propertyName);
-    }
-
-    public function hitungDurasi()
-    {
-        if ($this->mulai_pkl && $this->akhir_pkl) {
-            $start = \Carbon\Carbon::parse($this->mulai_pkl);
-            $end = \Carbon\Carbon::parse($this->akhir_pkl);
-            return $start->diffInDays($end) + 1;
-        }
-        return 0;
-    }
-
-    public function simpan()
-    {
-        $this->validate();
-
-        if ($this->siswa->pkls->count() === 0) {
-            Pkl::create([
-                'siswa_id' => $this->siswa->id,
-                'industri_id' => $this->industri_id,
-                'bidang_usaha' => $this->bidang_usaha,
-                'guru_id' => $this->guru_id,
-                'mulai_pkl' => $this->mulai_pkl,
-                'akhir_pkl' => $this->akhir_pkl,
-            ]);
-
-            // Update status_lapor_pkl ke true
-            $this->siswa->update(['status_lapor_pkl' => true]);
-
-            session()->flash('success', 'Data PKL berhasil disimpan!');
-        } else {
-            session()->flash('error', 'Data PKL sudah ada dan tidak bisa diubah.');
+    public function mount(){
+        //membaca email user yang sedang login
+        $this->userMail = Auth::user()->email;
+        
+        // Auto-fill siswa_id with logged-in user's siswa record
+        $siswa_login = Siswa::where('email', '=', $this->userMail)->first();
+        if($siswa_login) {
+            $this->siswaId = $siswa_login->id;
         }
     }
-
+    
     public function render()
     {
-        return view('livewire.front.pkl.index', [
-            'durasi' => $this->hitungDurasi(),
+        return view('livewire.front.pkl.index',[
+            'pkls' => $this->search === NULL ?
+                        Pkl::with(['siswa', 'industri', 'guru'])
+                            ->latest()
+                            ->paginate($this->rowPerPage) :
+                        Pkl::with(['siswa', 'industri', 'guru'])
+                            ->latest()
+                            ->whereHas('siswa', function ($query) {
+                                $query->where('nama', 'like', '%' . $this->search . '%');
+                            })
+                            ->orWhereHas('industri', function ($query) {
+                                $query->where('nama', 'like', '%' . $this->search . '%');
+                            })
+                            ->orWhere('bidang_usaha', 'like', '%' . $this->search . '%')
+                            ->paginate($this->rowPerPage),
+            
+            //mengakses record siswa yang emailnya sama dengan user yang sedang login
+            'siswa_login'=>Siswa::where('email','=',$this->userMail)->first(),
+            
+            'industris'=>Industri::all(),
+            'gurus'=>Guru::all(),
         ]);
+    }
+
+    public function create()
+    {
+        $this->resetInputFields();
+        $this->openModal();
+    }
+    
+    public function openModal()
+    {
+        $this->isOpen = true;
+    }
+
+    public function closeModal()
+    {
+        $this->isOpen = false;
+    }
+
+    private function resetInputFields(){
+        // Jangan reset siswaId karena sudah di-set dari user login
+        $siswa_login = Siswa::where('email', '=', $this->userMail)->first();
+        if($siswa_login) {
+            $this->siswaId = $siswa_login->id;
+        }
+        
+        $this->industriId   = '';
+        $this->guruId       = '';
+        $this->bidangUsaha  = '';
+        $this->mulai        = '';
+        $this->selesai      = '';
+    }
+
+    public function store()
+    {
+        $this->validate([
+            'siswaId'       => 'required',
+            'industriId'    => 'required',
+            'guruId'        => 'required',
+            'bidangUsaha'   => 'required|string|max:255',
+            'mulai'         => 'required|date',
+            'selesai'       => 'required|date|after:mulai',
+        ]);
+        
+        DB::beginTransaction();
+        
+        try {
+            $siswa = Siswa::find($this->siswaId);
+
+            if ($siswa->status_lapor_pkl) {
+                DB::rollBack();
+                $this->closeModal();
+                session()->flash('error', 'Transaksi dibatalkan: Siswa sudah melapor PKL.');
+                return;
+            }
+
+            // Hitung lama hari PKL
+            $mulai = \Carbon\Carbon::parse($this->mulai);
+            $selesai = \Carbon\Carbon::parse($this->selesai);
+            $lamaHari = $mulai->diffInDays($selesai) + 1; // +1 untuk include hari terakhir
+
+            // Simpan data PKL
+            Pkl::create([
+                'siswa_id'      => $this->siswaId,
+                'industri_id'   => $this->industriId,
+                'guru_id'       => $this->guruId,
+                'bidang_usaha'  => $this->bidangUsaha,
+                'mulai'         => $this->mulai,
+                'selesai'       => $this->selesai,
+                'lama_hari'     => $lamaHari,
+            ]);
+
+            DB::commit();
+            
+            $this->closeModal();
+            $this->resetInputFields();
+            session()->flash('success', 'Data PKL berhasil disimpan!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->closeModal();
+            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function delete($id)
+    {
+        try {
+            $pkl = Pkl::find($id);
+            if($pkl) {
+                $pkl->delete();
+                session()->flash('success', 'Data PKL berhasil dihapus!');
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 }

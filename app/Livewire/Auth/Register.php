@@ -28,13 +28,18 @@ class Register extends Component
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class, 'exists:siswas,email'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'email.exists' => 'Email ini tidak terdaftar sebagai siswa.',
+            'email.unique' => 'Email ini sudah terdaftar untuk registrasi.'
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
 
         event(new Registered(($user = User::create($validated))));
+
+        $user->assignRole('Siswa');
 
         Auth::login($user);
 

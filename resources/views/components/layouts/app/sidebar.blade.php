@@ -1,19 +1,28 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky stashable class="border-r border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+        <flux:sidebar sticky stashable class="border-zinc-200 bg-zinc-50 rounded-xl m-1 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ route('dashboard') }}" class="mr-5 flex items-center space-x-2" wire:navigate>
-                <x-app-logo />
-            </a>
+            <a href="{{ route('dashboard') }}" class="px-4 py-2 rounded-lg shadow-md">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 2L3 7v11h4v-6h6v6h4V7l-7-5z"/>
+                                </svg>
+                            </div>
+                            <span class="text-blue-600 font-bold text-xl">MagangKu</span>
+                        </div>
+                    </a>
 
             <flux:navlist variant="outline">
                 <flux:navlist.group :heading="__('Platform')" class="grid">
-                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    <flux:navlist.item class="mb-2" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    <flux:navlist.item class="mb-2" icon="home" :href="route('pkl')" :current="request()->routeIs('pkl')" wire:navigate>{{ __('PKL') }}</flux:navlist.item>
+                    <flux:navlist.item icon="home" :href="route('industri')" :current="request()->routeIs('industri')" wire:navigate>{{ __('Industri') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
@@ -128,5 +137,6 @@
         {{ $slot }}
 
         @fluxScripts
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </body>
 </html>
