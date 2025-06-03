@@ -29,18 +29,41 @@ class GuruResource extends Resource
                 Forms\Components\TextInput::make('nip')
                     ->required()
                     ->maxLength(18),
-                Forms\Components\TextInput::make('gender')
-                    ->required(),
+                                Forms\Components\Select::make('gender')
+                    ->required()
+                    ->options([
+                        'L' => 'Laki-laki',
+                        'P' => 'Perempuan',
+                    ]),
                 Forms\Components\Textarea::make('alamat')
                     ->required()
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('kontak')
                     ->required()
-                    ->maxLength(16),
+                    ->maxLength(16)
+                    ->unique(ignoreRecord: true)
+                    ->placeholder('+6281234567890')
+                    ->prefix('+62')
+                    ->afterStateHydrated(function (Forms\Components\TextInput $component, $state) {
+                        if ($state && str_starts_with($state, '0')) {
+                            $component->state('+62' . substr($state, 1));
+                        } elseif ($state && !str_starts_with($state, '+62')) {
+                            $component->state('+62' . $state);
+                        }
+                    })
+                     ->dehydrateStateUsing(fn ($state) => $state ? 
+                    (str_starts_with($state, '0') ? '+62' . substr($state, 1) : 
+                    (str_starts_with($state, '+62') ? $state : '+62' . $state)) 
+                    : $state)
+                    ->rule('regex:/^(\+62|0)\d{9,15}$/')
+                    ->validationMessages([
+                        'regex' => 'Format nomor harus diawali 0 atau +62 diikuti 9-15 digit angka',
+                    ]),
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->required()
-                    ->maxLength(30),
+                    ->maxLength(30)
+                    ->unique(ignoreRecord: true),
             ]);
     }
 
@@ -52,8 +75,17 @@ class GuruResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('nip')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('gender'),
+                 Tables\Columns\TextColumn::make('gender')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'L' => 'Laki-laki',
+                        'P' => 'Perempuan',
+                        default => $state,
+                    }),
                 Tables\Columns\TextColumn::make('kontak')
+                    ->formatStateUsing(fn (string $state): string => 
+                        $state && str_starts_with($state, '0') ? '+62' . substr($state, 1) : 
+                        ($state && !str_starts_with($state, '+62') ? '+62' . $state : $state)
+                    )
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
