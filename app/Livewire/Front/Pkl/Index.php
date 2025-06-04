@@ -118,6 +118,14 @@ class Index extends Component
             $selesai = \Carbon\Carbon::parse($this->selesai);
             $lamaHari = $mulai->diffInDays($selesai) + 1; // +1 untuk include hari terakhir
 
+            // Validasi minimal 90 hari
+            if ($lamaHari < 90) {
+                DB::rollBack();
+                $this->closeModal();
+                session()->flash('error', 'Durasi PKL harus minimal 90 hari. Durasi Anda: ' . $lamaHari . ' hari.');
+                return;
+            }
+
             // Simpan data PKL
             Pkl::create([
                 'siswa_id'      => $this->siswaId,
